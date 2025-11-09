@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  elasticsearch:
+    image: elastic/elasticsearch:9.1.5
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+      - xpack.security.enabled=false
+      - xpack.security.http.ssl.enabled=false
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9200"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-net
+
+  engine:
+    build:
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    environment:
+      - QUARKUS_PROFILE=PROD
+    networks:
+      - app-net
+
+
+volumes:
+  es_data:
+    driver: local
+
+networks:
+  app-net:
+    driver: bridge
